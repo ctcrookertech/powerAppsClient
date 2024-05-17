@@ -1,0 +1,91 @@
+<html>
+<head>
+    <title>Power Apps Client</title>
+    <script type="text/javascript" src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js"></script>
+    <style>
+        * {
+            font-family: Verdana, Geneva, Tahoma, Arial, sans-serif;
+            font-size: 11pt;
+            margin: 6pt 3pt 0pt 3pt;
+            padding: 2pt;
+        }
+        input[type="text"] {
+            width: 250pt;
+        }
+    </style>
+</head>
+<body>
+    <button id="reset-button">Reset Storage</button>
+    <button id="acquire-button">Acquire Token</button>
+    <button id="get-button" disabled="true">Get Connectors</button>
+    <button id="fetch-button">Fetch Data</button>
+    <div>
+        <input id="use-access-token-check" type="checkbox">Use Token</input>
+        <select id="request-type"><option>Connector Details</option><option>Raw</option></select>
+        <input id="fetch-input" type="text"></input>
+    </div>
+
+    <script type="module">
+        const useAccessTokenCheck = document.getElementById('use-access-token-check');
+        const tokenAcquisitionButton = document.getElementById('acquire-button');
+        const storageResetButton = document.getElementById('reset-button');
+        const connectorsGetButton = document.getElementById('get-button');
+        const requestTypeOption = document.getElementById('request-type');
+        const dataFetchButton = document.getElementById('fetch-button');
+        const fetchInput = document.getElementById('fetch-input');
+
+        import MsalAuthenticator from './scripts/msal.js';
+        var context = null;
+
+        tokenAcquisitionButton.addEventListener('click', async () => {
+            var authenticator = new MsalAuthenticator();
+            const response = await authenticator.authenticate();
+
+            if (response) {
+                context = { account: response.account, token: response.accessToken };
+                connectorsGetButton.disabled = false;
+                useAccessTokenCheck.checked = true;
+            } else {
+                console.error('Authentication failed');
+            }
+        });
+
+        storageResetButton.addEventListener('click', async () => {
+            console.log('Clear local storage');
+            localStorage.clear();
+        });
+
+        import PowerAppsClient from './scripts/powerApps.js';
+        window.client = new PowerAppsClient();
+
+        connectorsGetButton.addEventListener('click', async () => {
+            console.log('Get connectors');
+            window.client.fetchConnectors(context.token);
+        });
+
+        dataFetchButton.addEventListener('click', async () => {
+            var url = null;
+
+            switch (requestTypeOption.value)
+            {
+                case 'Connector Details':
+                    url = window.client.getConnectorUrl(fetchInput.value);
+                    break;
+                default:
+                    url = fetchInput.value;
+                    break;
+            }
+
+            var headers = new Headers();
+
+            if (useAccessTokenCheck.checked && context && context.token) {
+                headers.append('Authorization', `Bearer ${context.token}`);
+            }
+
+            fetch(url, headers)
+                .then(response => response.json())
+                .then(data => console.log(data));
+        });
+     </script>
+</body>
+</html>
