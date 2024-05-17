@@ -82,7 +82,7 @@
                 headers.append('Authorization', `Bearer ${context.token}`);
             }
 
-            fetch(url, headers)
+            fetch(url, { headers: headers })
                 .then(response => response.json())
                 .then(data => console.log(data));
         });
